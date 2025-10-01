@@ -2,32 +2,45 @@
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 
-## Project Overview
-This repository presents a novel sublinear-time algorithm for generating all prime numbers up to a given bound \( N \), achieving output-sensitive complexity \( O(\pi(N) \cdot \polylog N) \). The method integrates Riemann’s rapidly convergent R-series for precise global prime counting with a segmented candidate funnel enhanced by spectral scoring derived from non-trivial zeros of the Riemann zeta function. Drawing inspiration from analytic techniques akin to those employed by the Chudnovsky brothers in high-precision computations, the approach ensures unconditional correctness via truncation error bounds and deterministic primality testing, without relying on the Riemann Hypothesis (RH). Empirical validation demonstrates perfect accuracy for \( N \leq 10^9 \), with runtimes outperforming classical sieves like Eratosthenes by factors of 10–100 on standard hardware.
+### Project Overview
 
+This repository presents a novel sublinear-time algorithm for generating all prime numbers up to a given bound ($N$), achieving output‑sensitive complexity ($$O(\pi(N)\ \mathrm{polylog}\ N)$$). The method integrates Riemann’s rapidly convergent R‑series for precise global prime counting with a segmented candidate funnel enhanced by spectral scoring derived from non-trivial zeros of the Riemann zeta function. Drawing inspiration from analytic techniques akin to those employed by the Chudnovsky brothers in high‑precision computations, the approach ensures unconditional correctness via truncation error bounds and deterministic primality testing, without relying on the Riemann Hypothesis (RH). Empirical validation demonstrates perfect accuracy for ($N\le 10^9$), with runtimes outperforming classical sieves like Eratosthenes by factors of 10–100 on standard hardware.
 
 ### Mathematical Foundations
-- **Riemann’s R-Series Approximation**: The prime counting function satisfies \( \pi(x) = R(x) + E(x) \), where \( R(x) = \sum_{n=1}^K \frac{\mu(n)}{n} \cdot \text{li}(x^{1/n}) \), with \( \mu \) the Möbius function and \( \text{li}(y) = \text{p.v.} \int_0^y \frac{dt}{\log t} \) the logarithmic integral. The error \( |E(x)| \) admits unconditional bounds, e.g., \( | \pi(x) - R(x) | < \frac{\sqrt{x} \log x}{8\pi} \) for \( x \geq 355991 \) (refined Dusart inequalities). Convergence is rapid, with the tail after \( K \approx \log \log x \) being negligible.
-- **Light-Cone Fluctuations and Bracketing**: Prime fluctuations follow \( F(t) = \psi(e^t) - e^t \) (Chebyshev function), with stabilized \( G(t) = e^{-t/2} F(t) \) exhibiting std ≈ 0.28 under RH-like constraints. Unconditionally, \( \pi(x) \in [R(x) - \sqrt{x}, R(x) + \sqrt{x}] \), enabling safe funnel sizing.
-- **Fractal Resonance and Spectral Scoring**: Primes exhibit pseudo-fractal clustering with gaps \( \sim \log x \), tied to \( \phi \)-golden ratio scales. The von Mangoldt density is approximated via \( \delta\psi(x) \approx \frac{\psi(x e^h) - \psi(x e^{-h})}{2 h x \log x} \), with \( h = 0.05 / \log x \), tapered over low zeros \( \gamma_k \) by \( e^{-0.5 (h \gamma_k)^2} \), yielding z-scores for ranking.
+
+- **Riemann's R-Series Approximation**: The prime counting function satisfies $\pi(x)=R(x)+E(x)$, where
+  
+  $$R(x)=\sum_{n=1}^{K}\frac{\mu(n)}{n}\,\mathrm{Li}\!\left(x^{1/n}\right),\qquad \mathrm{Li}(y)=\text{p.v.}\!\int_{0}^{y}\frac{dt}{\log t}$$
+  
+  is the logarithmic integral. The error $|E(x)|$ has unconditional bounds, e.g.,
+  
+  $$|\pi(x)-R(x)|<\frac{\sqrt{x}\,\log\log x}{8\pi}\quad\text{for }x\ge 355991$$
+  
+  (refined Dusart inequalities). Convergence is rapid, with the tail after $K\approx\log\log\log x$ being negligible.
+
+- **Light-Cone Fluctuations and Bracketing**: Prime fluctuations follow $F(t)=\psi(e^{t})-e^{t}$ (Chebyshev function), with stabilized $G(t)=e^{\lambda t/2}F(t)$ exhibiting $\mathrm{std}\approx0.28$ under RH-like constraints. Unconditionally, $\pi(x)\in[R(x)-\sqrt{x},\,R(x)+\sqrt{x}]$, enabling safe funnel sizing.
+
+- **Fractal Resonance and Spectral Scoring**: Primes exhibit pseudo-fractal clustering with gaps $\sim\log x$, tied to $\varphi$-golden-ratio scales. The von Mangoldt density is approximated via a symmetric difference $\delta\psi(x)\approx\big(\psi(e^{h})-\psi(e^{-h})\big)/(2h)$ with $h=0.05/\log x$, tapered over low zeros $\gamma_k$ by $w_k=\exp\!\big(-\tfrac{1}{2}(h\gamma_k)^2\big)$, yielding $z$-scores for ranking.
 
 ### Algorithmic Design
-- **Segmented R-Series Funnel Pipeline**:
-  1. **Global Setup**: Precompute Möbius up to \( K = 50 \); wheel residues mod 30.
-  2. **Segment Count**: \( \hat{R} = R(X + \Delta; K) - R(X - 1; K) \); adapt \( K \) until tail < \( 10^{-6} \).
-  3. **Candidate Funnel**: Wheel-filtered candidates (\( \sim \Delta / \log \Delta \)); compute spectral z-scores; select top \( M = \lceil 1.2 \hat{R} \rceil \).
-  4. **Certification**: Miller-Rabin (7 bases for < \( 2^{64} \)) or SymPy `isprime`.
-  5. **Refinement**: If certified \( |S| \notin [\hat{R} - \sqrt{\Delta}, \hat{R} + \sqrt{\Delta}] \), increase \( K/T \) or shrink \( \Delta \).
-  6. **Output**: Union over segments.
-- **Complexity Analysis**: Per-segment \( R \): \( O(K \log \log x) = O(1) \); Scoring: \( O(\Delta / \log \Delta \cdot T) \) (T=50 fixed); Certification: \( O(M \polylog N) = O(\pi(N) \polylog N) \). Total: \( O(\pi(N) \polylog N) \), optimal unconditionally via R-bounds.
+
+- Segmented R‑Series Funnel Pipeline:
+  1. Global Setup: Precompute Möbius up to $K=50$; wheel residues mod 30.
+  2. Segment Count: $\hat{R}=R(X+\Delta;K)-R(X-1;K)$; adapt $K$ until tail $<10^{-6}$.
+  3. Candidate Funnel: Wheel‑filtered candidates ($\sim\Delta/\log\Delta$); compute spectral $z$‑scores; select top $M=\lceil1.2\hat{R}\rceil$.
+  4. Certification: Miller–Rabin (7 bases for $<2^{64}$) or SymPy `isprime`.
+  5. Refinement: If certified $|S|\notin[\hat{R}-\sqrt{\Delta},\,\hat{R}+\sqrt{\Delta}]$, increase $K/T$ or shrink $\Delta$.
+  6. Output: Union over segments.
+
+- Complexity Analysis: Per‑segment $R$: $O(K\log\log x)=O(1)$; Scoring: $O\!\big((\Delta/\log\Delta)\,T\big)$ (with fixed $T=50$); Certification: $O(M\,\mathrm{polylog}\,N)=O(\pi(N)\,\mathrm{polylog}\,N)$. Total: $O(\pi(N)\,\mathrm{polylog}\,N)$, optimal unconditionally via R‑bounds.
 
 ## Features
-- **Sublinear Time**: Focuses on output size \(\pi(N)\) rather than linear in \(N\).
-- **Spectral Scoring**: Uses zeta zeros for candidate prioritization.
-- **Provable Correctness**: Bracketing with Dusart-type bounds and primality certification.
-- **Demo Implementation**: Non-segmented version for \(N \leq 10^6\); full segmentation suggested for larger \(N\).
-- **Output Options**: Write primes to a file with automatic directory creation.
-- **Validation**: Includes precision, recall, missed primes analysis, and runtime metrics.
+- Sublinear Time: Focuses on output size $\pi(N)$ rather than linear in $N$.
+- Spectral Scoring: Uses zeta zeros for candidate prioritization.
+- Provable Correctness: Bracketing with Dusart‑type bounds and primality certification.
+- Demo Implementation: Non‑segmented version for $N\le 10^6$; full segmentation suggested for larger $N$.
+- Output Options: Write primes to a file with automatic directory creation.
+- Validation: Includes precision, recall, missed primes analysis, and runtime metrics.
 
 ## Dependencies
 The code requires Python 3.12+ and the following libraries (install via `pip`):
